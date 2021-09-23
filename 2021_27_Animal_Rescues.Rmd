@@ -1,0 +1,98 @@
+---
+title: "TidyTemplate"
+date: 2021-09-21
+editor_options: 
+  chunk_output_type: console
+---
+
+# TidyTuesday
+
+Join the R4DS Online Learning Community in the weekly #TidyTuesday event!
+Every week we post a raw dataset, a chart or article related to that dataset, and ask you to explore the data.
+While the dataset will be “tamed”, it will not always be tidy! As such you might need to apply various R for Data Science techniques to wrangle the data into a true tidy format.
+The goal of TidyTuesday is to apply your R skills, get feedback, explore other’s work, and connect with the greater #RStats community!
+As such we encourage everyone of all skills to participate!
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+library(scales)
+library(lubridate)
+library(ggplot2)
+theme_set(theme_light())
+
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tidytuesdayR::tt_load('2021-06-29')
+
+
+```
+
+# Glimpse Data
+
+Take an initial look at the format of the data available.
+
+```{r Glimpse}
+
+tt %>% 
+  map(glimpse)
+
+```
+
+Splitting the date & time from "date_time_of_call" into separate columns
+```{r}
+hour <- format(as.POSIXct(strptime(tt$animal_rescues$date_time_of_call,"%d/%m/%Y %H:%M",tz="")) ,format = "%H:%M")
+dates <- format(as.POSIXct(strptime(tt$animal_rescues$date_time_of_call,"%d/%m/%Y %H:%M",tz="")) ,format = "%d/%d/%Y")
+
+tt$animal_rescues$date <- dates
+tt$animal_rescues$time <- hour
+
+rescues <- tt$animal_rescues %>% 
+  select(-date_time_of_call)
+```
+
+```{r}
+animals_agg %>% 
+  #filter(special_service_type_category == "Other animal assistance") %>% 
+  count(animal_group_aggregated, sort = TRUE)
+```
+
+```{r}
+animals_agg <-
+  rescues %>% 
+  mutate(
+    animal_group_aggregated = case_when(
+      str_detect(animal_group_parent, "Domestic|Livestock|Farm|Horse|Cow|Sheep|Goat|Lamb|Bull") ~ "Other Domestic Animals",
+      animal_group_parent %in% c("Cat", "cat") ~ "Cats",
+      animal_group_parent %in% c("Bird", "Budgie") ~ "Birds",
+      animal_group_parent == "Dog" ~ "Dogs",
+      animal_group_parent == "Fox" ~ "Foxes",
+      TRUE ~ "Other Wild Animals"
+    )
+  )
+
+
+```
+
+# Number of rescues each year by type of animal
+```{r}
+animals_agg %>% 
+  ggplot(aes(cal_year, fill = animal_group_aggregated)) +
+  geom_bar() +
+  labs(title = "Number of rescues per year",
+       subtitle = "Split into animal categories",
+       fill = "Animal Type",
+       x = "Year",
+       y = "Number of Rescues")
+```
+
+# Checking git works
