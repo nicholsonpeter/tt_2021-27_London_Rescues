@@ -22,6 +22,7 @@ library(tidytuesdayR)
 library(scales)
 library(lubridate)
 library(ggplot2)
+library(tidyr)
 theme_set(theme_light())
 
 ```
@@ -56,14 +57,27 @@ dates <- format(as.POSIXct(strptime(tt$animal_rescues$date_time_of_call,"%d/%m/%
 tt$animal_rescues$date <- dates
 tt$animal_rescues$time <- hour
 
-rescues <- tt$animal_rescues %>% 
-  select(-date_time_of_call)
 ```
 
+
 ```{r}
-animals_agg %>% 
-  #filter(special_service_type_category == "Other animal assistance") %>% 
-  count(animal_group_aggregated, sort = TRUE)
+rescues <- tt$animal_rescues %>% 
+  drop_na() %>%  
+  select(-date_time_of_call,
+         -hourly_notional_cost,
+         -pump_count,
+         -pump_hours_total,
+         -uprn,-usrn,
+         -easting_m,
+         -northing_m,
+         -easting_rounded,
+         -northing_rounded,
+         -final_description)
+```
+
+
+```{r}
+rescues$incident_notional_cost <- as.numeric(rescues$incident_notional_cost)
 ```
 
 ```{r}
@@ -83,6 +97,13 @@ animals_agg <-
 
 ```
 
+```{r}
+animals_agg %>% 
+  #filter(special_service_type_category == "Other animal assistance") %>% 
+  count(animal_group_aggregated, sort = TRUE)
+```
+
+
 # Number of rescues each year by type of animal
 ```{r}
 animals_agg %>% 
@@ -95,4 +116,11 @@ animals_agg %>%
        y = "Number of Rescues")
 ```
 
-# Checking git works
+```{r}
+animals_agg %>% 
+  count(animal_group_aggregated, longitude, latitude, sort = TRUE) %>% 
+  ggplot(aes(longitude, latitude, size = n, colour = animal_group_aggregated)) +
+  geom_point() +
+  scale_size_continuous()
+```
+
